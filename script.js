@@ -12,7 +12,7 @@
   /* CSS */
   const style = document.createElement("style");
   style.textContent = `
-    /* SAFE DARK MODE */
+    /* SAFE DARK MODE (only affects body, not panel) */
     .ut-dark body {
       background:#111 !important;
       color:#e0e0e0 !important;
@@ -20,7 +20,7 @@
     .ut-dark body * {
       background-color:transparent !important;
       color:#e0e0e0 !important;
-      border-color:#555 !important;
+      border-color:#666 !important;
     }
 
     /* Screenshot mode */
@@ -43,7 +43,7 @@
   `;
   document.head.appendChild(style);
 
-  /* PANEL (immune to filters) */
+  /* PANEL (immune to all effects) */
   const p = document.createElement("div");
   p.style.cssText = `
     position:fixed;top:80px;right:20px;width:180px;
@@ -98,7 +98,7 @@
     html.classList.toggle("ut-img", img);
   });
 
-  /* SAFE TOGGLE TEXT */
+  /* SAFE TOGGLE TEXT (panel immune) */
   addBtn("🔤 Toggle Text", "#c6f", ()=>{
     txt = !txt;
 
