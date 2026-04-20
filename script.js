@@ -1,19 +1,32 @@
 (function(){
 
-  // Prevent double loading
   if (window.__UTP_LOADED__) return;
   window.__UTP_LOADED__ = true;
 
   const html = document.documentElement;
 
-  // Inject CSS
+  /* -------------------------
+     SAFE TEXT BACKUP STORAGE
+  ------------------------- */
+  let __UTP_TEXT_BACKUP__ = new WeakMap();
+
+  /* -------------------------
+     CSS (SAFE DARK MODE + OTHERS)
+  ------------------------- */
   const style = document.createElement("style");
   style.textContent = `
-    .ut-dark * {
+    /* SAFE DARK MODE (not aggressive) */
+    .ut-dark {
       background-color:#111 !important;
       color:#e0e0e0 !important;
-      border-color:#333 !important;
     }
+    .ut-dark * {
+      background-color:transparent !important;
+      color:#e0e0e0 !important;
+      border-color:#444 !important;
+    }
+
+    /* Screenshot mode */
     .ut-snap header,
     .ut-snap nav,
     .ut-snap footer,
@@ -23,23 +36,19 @@
     .ut-snap .menu {
       display:none !important;
     }
+
+    /* Hide images */
     .ut-img img,
     .ut-img video,
     .ut-img picture {
       opacity:0 !important;
     }
-    .ut-text * {
-      color:transparent !important;
-      text-shadow:none !important;
-    }
-    .ut-text input,
-    .ut-text textarea {
-      color:transparent !important;
-    }
   `;
   document.head.appendChild(style);
 
-  // Panel
+  /* -------------------------
+     PANEL UI
+  ------------------------- */
   const p = document.createElement("div");
   p.style.cssText = `
     position:fixed;top:80px;right:20px;width:180px;
@@ -63,57 +72,109 @@
     p.appendChild(b);
   }
 
-  // State
+  /* -------------------------
+     STATE
+  ------------------------- */
   let dark=false, snap=false, img=false, txt=false, hue=0;
 
+  /* -------------------------
+     BUTTONS
+  ------------------------- */
+
+  // SAFE DARK MODE
   addBtn("🌙 Dark Mode", "#fff", ()=>{
     dark=!dark;
     html.classList.toggle("ut-dark", dark);
   });
 
+  // Screenshot mode
   addBtn("📸 Screenshot", "#0ff", ()=>{
     snap=!snap;
     html.classList.toggle("ut-snap", snap);
   });
 
+  // Color cycle
   addBtn("🌈 Cycle Colors", "#ff0", ()=>{
     hue=(hue+45)%360;
     html.style.filter = `hue-rotate(${hue}deg)`;
   });
 
+  // Reset colors
   addBtn("♻ Reset Colors", "#0f0", ()=>{
     hue=0;
     html.style.filter = "";
   });
 
+  // Hide images
   addBtn("🖼 Toggle Images", "#4af", ()=>{
     img=!img;
     html.classList.toggle("ut-img", img);
   });
 
+  // SAFE TOGGLE TEXT (fixed)
   addBtn("🔤 Toggle Text", "#c6f", ()=>{
-    txt=!txt;
-    html.classList.toggle("ut-text", txt);
+    txt = !txt;
+
+    if (txt) {
+      // Hide text safely
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
+      let node;
+      while (node = walker.nextNode()) {
+        if (!__UTP_TEXT_BACKUP__.has(node)) {
+          __UTP_TEXT_BACKUP__.set(node, node.textContent);
+          node.textContent = node.textContent.replace(/\S/g, "•");
+        }
+      }
+    } else {
+      // Restore text
+      __UTP_TEXT_BACKUP__.forEach((value, node)=>{
+        node.textContent = value;
+      });
+      __UTP_TEXT_BACKUP__ = new WeakMap();
+    }
   });
 
+  // Clean page
   addBtn("🧼 Clean Page", "#fa0", ()=>{
-    html.classList.add("ut-snap","ut-img","ut-text");
-    snap=img=txt=true;
+    html.classList.add("ut-snap","ut-img");
+    snap=img=true;
+
+    // Also hide text safely
+    txt = true;
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
+    let node;
+    while (node = walker.nextNode()) {
+      if (!__UTP_TEXT_BACKUP__.has(node)) {
+        __UTP_TEXT_BACKUP__.set(node, node.textContent);
+        node.textContent = node.textContent.replace(/\S/g, "•");
+      }
+    }
   });
 
+  // Restore everything
   addBtn("🔧 Restore All", "#0f9", ()=>{
-    html.classList.remove("ut-dark","ut-snap","ut-img","ut-text");
+    html.classList.remove("ut-dark","ut-snap","ut-img");
     html.style.filter="";
-    dark=snap=img=txt=false;
+    dark=snap=img=false;
     hue=0;
+
+    // Restore text
+    __UTP_TEXT_BACKUP__.forEach((value, node)=>{
+      node.textContent = value;
+    });
+    __UTP_TEXT_BACKUP__ = new WeakMap();
+    txt=false;
   });
 
+  // Close panel
   addBtn("❌ Close", "#555", ()=>{
     p.remove();
     window.__UTP_LOADED__ = false;
   });
 
-  // Draggable
+  /* -------------------------
+     DRAGGABLE PANEL
+  ------------------------- */
   let x=0,y=0,dx=0,dy=0;
   p.onmousedown = e=>{
     dx=e.clientX; dy=e.clientY;
