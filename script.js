@@ -186,7 +186,6 @@
       p.style.top = (p.offsetTop - y) + "px";
       p.style.left = (p.offsetLeft - x) + "px";
     };
-  };
+  }; dddddd
 
 })();
-ddddddd
