@@ -15,15 +15,15 @@
   ------------------------- */
   const style = document.createElement("style");
   style.textContent = `
-    /* SAFE DARK MODE (not aggressive) */
-    .ut-dark {
-      background-color:#111 !important;
+    /* SAFE DARK MODE (does NOT blend borders or backgrounds) */
+    .ut-dark body {
+      background:#111 !important;
       color:#e0e0e0 !important;
     }
-    .ut-dark * {
+    .ut-dark body * {
       background-color:transparent !important;
       color:#e0e0e0 !important;
-      border-color:#444 !important;
+      border-color:#555 !important;
     }
 
     /* Screenshot mode */
@@ -47,16 +47,19 @@
   document.head.appendChild(style);
 
   /* -------------------------
-     PANEL UI
+     PANEL (placed OUTSIDE body)
   ------------------------- */
   const p = document.createElement("div");
   p.style.cssText = `
     position:fixed;top:80px;right:20px;width:180px;
     background:#111;color:#0ff;border:2px solid #0ff;
-    padding:10px;font-family:monospace;z-index:999999999;
+    padding:10px;font-family:monospace;z-index:2147483647;
     border-radius:10px;cursor:move;box-shadow:0 0 10px #0ff;
   `;
   p.innerHTML = `<b>⚡ Tools</b><br><small style="color:#888">drag me</small>`;
+
+  // APPEND TO <html>, NOT <body>
+  html.appendChild(p);
 
   function addBtn(label, color, fn){
     const b = document.createElement("button");
@@ -111,13 +114,25 @@
     html.classList.toggle("ut-img", img);
   });
 
-  // SAFE TOGGLE TEXT (fixed)
+  /* -------------------------
+     SAFE TOGGLE TEXT (panel immune)
+  ------------------------- */
   addBtn("🔤 Toggle Text", "#c6f", ()=>{
     txt = !txt;
 
     if (txt) {
-      // Hide text safely
-      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
+      const walker = document.createTreeWalker(
+        document.body,
+        NodeFilter.SHOW_TEXT,
+        {
+          acceptNode(node){
+            // SKIP PANEL TEXT
+            if (p.contains(node.parentNode)) return NodeFilter.FILTER_REJECT;
+            return NodeFilter.FILTER_ACCEPT;
+          }
+        }
+      );
+
       let node;
       while (node = walker.nextNode()) {
         if (!__UTP_TEXT_BACKUP__.has(node)) {
@@ -125,8 +140,8 @@
           node.textContent = node.textContent.replace(/\S/g, "•");
         }
       }
+
     } else {
-      // Restore text
       __UTP_TEXT_BACKUP__.forEach((value, node)=>{
         node.textContent = value;
       });
@@ -139,9 +154,19 @@
     html.classList.add("ut-snap","ut-img");
     snap=img=true;
 
-    // Also hide text safely
+    // Hide text safely
     txt = true;
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
+    const walker = document.createTreeWalker(
+      document.body,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode(node){
+          if (p.contains(node.parentNode)) return NodeFilter.FILTER_REJECT;
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      }
+    );
+
     let node;
     while (node = walker.nextNode()) {
       if (!__UTP_TEXT_BACKUP__.has(node)) {
@@ -158,7 +183,6 @@
     dark=snap=img=false;
     hue=0;
 
-    // Restore text
     __UTP_TEXT_BACKUP__.forEach((value, node)=>{
       node.textContent = value;
     });
@@ -188,7 +212,5 @@
       p.style.left = (p.offsetLeft - x) + "px";
     };
   };
-
-  document.body.appendChild(p);
 
 })();
